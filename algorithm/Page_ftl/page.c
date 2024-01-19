@@ -174,6 +174,10 @@ uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 		tmp_user_write=0;
                 tmp_gc_write=0;
 	}
+
+	//TODO get stream number of the request here
+	int streams = (int)req->stream_num;
+	printf("streamnum: %d\n", streams);
 	for(uint32_t i=0; i<a_buffer.idx; i++){
 		if(a_buffer.key[i]==req->key){
 			overlapped_idx=i;

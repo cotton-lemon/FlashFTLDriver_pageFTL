@@ -61,6 +61,7 @@ struct request {
 	uint64_t ppa;/*it can be the iter_idx*/
 	uint32_t seq;
 	uint32_t global_seq;
+	uint32_t stream_num; //stream number for multistream
 #ifdef hash_dftl
 	volatile int num; /*length of requests*/
 	volatile int cpl; /*number of completed requests*/

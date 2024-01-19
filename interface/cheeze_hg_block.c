@@ -343,6 +343,7 @@ vec_request *jy_ureq2vec_req(char* request_raw) {
 	*/
 	lba_r = atoi(strtok(NULL, " \t"));
 	size_r = atoi(strtok(NULL, " \t"));
+	int stream = atoi(strtok(NULL, " \t"));
 	//printf("size: %d\n", size_r);
 	res->origin_req=NULL;
 	res->size=size_r/LPAGESIZE;
@@ -364,6 +365,7 @@ vec_request *jy_ureq2vec_req(char* request_raw) {
 		temp->seq=i;
 		temp->type_ftl=0;
 		temp->type_lower=0;
+		temp->stream_num=stream;
 		temp->is_sequential_start=false;
 		temp->flush_all=0;
 		temp->global_seq=global_seq++;
