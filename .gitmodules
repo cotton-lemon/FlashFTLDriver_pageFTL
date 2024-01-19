@@ -1,0 +1,3 @@
+[submodule "include/data_struct/libart"]
+	path = include/data_struct/libart
+	url = https://github.com/dgist-datalab/libart.git
