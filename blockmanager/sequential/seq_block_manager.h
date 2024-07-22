@@ -6,12 +6,14 @@
 #include "../bb_checker.h"
 #include <stdint.h>
 
+extern long reqq_size;
 typedef struct block_set{
 	uint32_t total_invalid_number;
 	uint32_t total_valid_number;
 	uint32_t used_page_num;
 	uint8_t type;
 	__block *blocks[BPS];
+	uint32_t written_time;
 	void *hptr;
 }block_set;
 

@@ -45,7 +45,7 @@ struct blockmanager seq_bm={
 	.pt_isgc_needed=seq_pt_isgc_needed,
 	.change_pt_reserve=seq_change_pt_reserve,
 	.pt_reserve_to_free=seq_pt_reserve_to_free,
-};
+};//todosg
 
 void seq_mh_swap_hptr(void *a, void *b){
 	block_set *aa=(block_set*)a;
@@ -71,8 +71,21 @@ int seq_get_cnt(void *a){
 		aa->total_invalid_number=res;
 	}
 	else res=aa->total_invalid_number;*/
+	//todosg
 
-	return aa->total_invalid_number;
+	//Greedy
+	// return aa->total_invalid_number;
+	// printf("age: %d, invalid %d, valid %d, cost: %d \n",reqq_size-(aa->written_time),aa->total_invalid_number,aa->total_valid_number,(reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number));
+	// if (aa->written_time==0){
+	// 	printf("not finished block invalid %d valid %d\n",aa->total_invalid_number,aa->total_valid_number);
+	// }
+	
+	//need??
+	// if (aa->written_time==0){
+	// 	return aa->total_invalid_number/(513-aa->total_invalid_number);
+	// }
+	//Cost Benefit(CF)
+	return (reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number);
 }
 
 uint32_t seq_create (struct blockmanager* bm, lower_info *li){
@@ -99,6 +112,8 @@ uint32_t seq_create (struct blockmanager* bm, lower_info *li){
 		}
 		p->logical_segment[i].total_invalid_number=0;
 		p->logical_segment[i].total_valid_number=0;
+		// p->logical_segment[i].written_time=0;
+		
 	}
 
 	mh_init(&p->max_heap, _NOS, seq_mh_swap_hptr, seq_mh_assign_hptr, seq_get_cnt);
@@ -253,7 +268,7 @@ __gsegment* seq_get_gc_target (struct blockmanager* bm){
 	else{
 		res->all_invalid=false;
 	}
-
+	// mh_print(p->max_heap, temp_print);
 	if(res->invalidate_number==0){
 		/*
 		printf("_NOS*_PPS*L2PGAP:%lu validate:%lu ivnalidate:%lu\n", 
@@ -310,6 +325,7 @@ void seq_trim_segment (struct blockmanager* bm, __gsegment* gs, struct lower_inf
 	block_set *bs=&p->logical_segment[segment_idx];
 	bs->total_invalid_number=0;
 	bs->total_valid_number=0;
+	// bs->written_time=0;
 	/*
 	if(bs==&p->logical_segment[1228928/16384]){
 		bs->blocks[(1228928%16384)%256]
@@ -341,6 +357,14 @@ int seq_populate_bit (struct blockmanager* bm, uint32_t ppa){
 	uint32_t segment_idx=b->block_num/BPS;
 	block_set *seg=&p->logical_segment[segment_idx];
 	seg->total_valid_number++;
+	// printf("total %d\n",(seg->total_invalid_number+seg->total_valid_number));
+	// printf("ppb %d\n",_PPB);
+	if (seg->total_invalid_number+seg->total_valid_number ==_PPB*4-1){
+		// printf("full reqqsize %ld\n",reqq_size);
+		// printf("written_time %d, now : %d\n",seg->written_time,reqq_size);
+		seg->written_time=reqq_size;
+	}
+		//todosg
 	total_validate_piece_ppa++;
 
 	if(p->seq_block[bn].bitset[bt]&(1<<of)){
@@ -465,12 +489,20 @@ void seq_release_segment(struct blockmanager* bm, __segment *s){
 
 int seq_get_page_num(struct blockmanager* bm,__segment *s){
 	if(s->now==BPS-1){
-		if(s->blocks[BPS-1]->now==_PPB) return -1;
+		if(s->blocks[BPS-1]->now==_PPB){
+			// s->blocks[s->now]->age=reqq_size;
+			// printf("now %d reqqsize %d \n",s->now,reqq_size);			
+			return -1;
+			}
 	}
 
 	__block *b=s->blocks[s->now];
 	if(b->now==_PPB){
+		// s->blocks[s->now]->age=reqq_size;
+		// printf("now  reqqsize %ld \n",reqq_size);//???
+		//s->blocks[blocknumber]->blocknum*_PPB+page;
 		s->now++;
+
 	}
 	int blocknumber=s->now;
 	b=s->blocks[blocknumber];

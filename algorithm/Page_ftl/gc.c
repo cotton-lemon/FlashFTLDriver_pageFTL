@@ -120,6 +120,7 @@ next:
 }
 
 void do_gc(){
+	// printf("g ");
 	/*this function return a block which have the most number of invalidated page*/
 	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
 	uint32_t page;
@@ -213,6 +214,101 @@ void do_gc(){
 	list_free(hot_list);
 }
 
+// void do_gc2(){
+// 	/*this function return a block which have the most number of invalidated page*/
+// 	// printf("do gc 2\n");
+// 	// printf("2 ");
+// 	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
+// 	uint32_t page;
+// 	uint32_t bidx, pidx;
+// 	blockmanager *bm=page_ftl.bm;
+// 	pm_body *p=(pm_body*)page_ftl.algo_body;
+// 	list *temp_list=list_init();
+// 	list *hot_list=list_init();
+// 	align_gc_buffer g_buffer;
+// 	gc_value *gv;
+
+// 	li_node *now, *nxt;
+// 	//for printing valid page number
+// 	const uint32_t tot_page_num=512;
+// 	uint32_t page_num=0;
+// 	//uint32_t test=0;
+	
+// 	//static int cnt=0;
+// 	//printf("gc: %d\n", cnt++);
+// 	/*by using this for loop, you can traversal all page in block*/
+// 	for_each_page_in_seg(target,page,bidx,pidx){
+// 		//this function check the page is valid or not
+// 		bool should_read=false;
+// 	//	++test;
+// 		for(uint32_t i=0; i<L2PGAP; i++){			
+// 			if(bm->is_invalid_page(bm,page*L2PGAP+i)) continue;
+// 			else{
+// 				should_read=true;
+// 				break;
+// 			}
+// 		}
+// 		if(should_read){
+// 			gv=send_req(page,GCDR,NULL);
+// 			list_insert(temp_list,(void*)gv);
+// 		}
+// 	}
+
+// 	g_buffer.idx=0;
+// 	KEYT *lbas;
+// 	while(temp_list->size){
+// 		for_each_list_node_safe(temp_list,now,nxt){
+
+// 			gv=(gc_value*)now->data;
+// 			if(!gv->isdone) continue;
+// 			lbas=(KEYT*)bm->get_oob(bm, gv->ppa);
+// 			for(uint32_t i=0; i<L2PGAP; i++){
+// 				if(bm->is_invalid_page(bm,gv->ppa*L2PGAP+i)) continue;
+// 				++page_num;
+// 				++tmp_gc_write;
+// 				memcpy(&g_buffer.value[g_buffer.idx*LPAGESIZE],&gv->value->value[i*LPAGESIZE],LPAGESIZE);
+// 				g_buffer.key[g_buffer.idx]=lbas[i];
+
+// 				g_buffer.idx++;
+			
+// 				if(g_buffer.idx==L2PGAP){
+// 					uint32_t res=page_map_gc_update(g_buffer.key, L2PGAP);
+// 					validate_ppa(res, g_buffer.key, g_buffer.idx);
+// 					send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
+// 					g_buffer.idx=0;
+// 				}
+// 			}
+
+// 			inf_free_valueset(gv->value, FS_MALLOC_R);
+// 			free(gv);
+// 			//you can get lba from OOB(spare area) in physicall page
+// 			list_delete_node(temp_list,now);
+// 		}
+// 	}
+
+// 	if(g_buffer.idx!=0){
+// 		uint32_t res=page_map_gc_update(g_buffer.key, g_buffer.idx);
+// 		validate_ppa(res, g_buffer.key, g_buffer.idx);
+// 		send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
+// 		g_buffer.idx=0;	
+// 	}
+// 	//if (test*4 != tot_page_num) printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!wrong!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\ntest:%d tot_page:%d", test*4, tot_page_num);
+// 	//printf("gc occurs, valid page: %f%%\n", (float)page_num/(float)tot_page_num*(float)100);
+	
+
+
+// 	//if (hot_10+hot_20+hot_30+hot_40+hot_50 != 0) printf("hot count: %d %d %d %d %d\n", hot_10, hot_20, hot_30, hot_40, hot_50);
+
+// 	bm->trim_segment(bm,target,page_ftl.li); //erase a block
+
+// 	bm->free_segment(bm, p->active);
+
+// 	p->active=p->reserve;//make reserved to active block
+// 	p->reserve=bm->change_reserve(bm,p->reserve); //get new reserve block from block_manager
+
+// 	list_free(temp_list);
+// 	list_free(hot_list);
+// }
 
 ppa_t get_ppa(KEYT *lbas, uint32_t max_idx){
 	uint32_t res;
@@ -220,7 +316,8 @@ ppa_t get_ppa(KEYT *lbas, uint32_t max_idx){
 	/*you can check if the gc is needed or not, using this condition*/
 	if(page_ftl.bm->check_full(page_ftl.bm, p->active,MASTER_PAGE) && page_ftl.bm->is_gc_needed(page_ftl.bm)){
 //		new_do_gc();//call gc
-		do_gc();//call gc
+		do_gc();//call gc 
+		// do_gc2();
 	}
 
 retry:
@@ -230,6 +327,7 @@ retry:
 	if(res==UINT32_MAX){
 		page_ftl.bm->free_segment(page_ftl.bm, p->active);
 		p->active=page_ftl.bm->get_segment(page_ftl.bm,false); //get a new block
+		// printf("r ");
 		goto retry;
 	}
 

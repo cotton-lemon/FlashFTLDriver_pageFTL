@@ -158,7 +158,7 @@ uint32_t page_read(request *const req){
 	return 1;
 }
 
-long reqq_size=0;
+long reqq_size=0;//memo
 static uint32_t size=0;
 uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 	bool overlap=false;
@@ -170,9 +170,10 @@ uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 	//if (size%8388608==0) printf("\n");
 
 	if (reqq_size%(GIGAUNIT*1024/4*1024)==0) {
+		printf("reqq_size %d\n",reqq_size);
 		printf("[PROGRESS %dGB] tmp WAF = %.3f\n", reqq_size/(1024*1024/4),(double)(tmp_user_write+tmp_gc_write)/(double)tmp_user_write);
 		tmp_user_write=0;
-                tmp_gc_write=0;
+		tmp_gc_write=0;
 	}
 
 	//TODO get stream number of the request here
