@@ -359,11 +359,12 @@ int seq_populate_bit (struct blockmanager* bm, uint32_t ppa){
 	seg->total_valid_number++;
 	// printf("total %d\n",(seg->total_invalid_number+seg->total_valid_number));
 	// printf("ppb %d\n",_PPB);
-	if (seg->total_invalid_number+seg->total_valid_number ==_PPB*4-1){
-		// printf("full reqqsize %ld\n",reqq_size);
-		// printf("written_time %d, now : %d\n",seg->written_time,reqq_size);
-		seg->written_time=reqq_size;
-	}
+	// if (seg->total_invalid_number+seg->total_valid_number ==_PPB*4-1){
+	// 	// printf("full reqqsize %ld\n",reqq_size);
+	// 	// printf("written_time %d, now : %d\n",seg->written_time,reqq_size);
+	// 	seg->written_time=reqq_size;
+	// }
+	seg->written_time=reqq_size;
 		//todosg
 	total_validate_piece_ppa++;
 
