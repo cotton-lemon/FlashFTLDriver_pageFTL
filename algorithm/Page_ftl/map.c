@@ -5,6 +5,7 @@
 #include <limits.h>
 extern uint32_t test_key;
 extern algorithm page_ftl;
+extern int _current_stream;
 //FILE *vFile;
 
 void page_map_create(){
@@ -14,8 +15,12 @@ void page_map_create(){
 		p->mapping[i]=UINT_MAX;
 	}
 	//vFile = fopen("./valid_ratio/tmp_bps", "w");
-	p->reserve=page_ftl.bm->get_segment(page_ftl.bm,true); //reserve for GC
-	p->active=page_ftl.bm->get_segment(page_ftl.bm,false); //now active block for inserted request.
+	// p->reserve=page_ftl.bm->get_segment(page_ftl.bm,true); //reserve for GC
+	// p->active=page_ftl.bm->get_segment(page_ftl.bm,false); //now active block for inserted request.
+	for (int i=0; i<MAX_STREAM;++i){
+		p->reserve[i]=page_ftl.bm->get_segment(page_ftl.bm,true); //reserve for GC
+		p->active[i]=page_ftl.bm->get_segment(page_ftl.bm,false); //now active block for inserted request.
+	}
 	page_ftl.algo_body=(void*)p; //you can assign your data structure in algorithm structure
 
 }
@@ -70,7 +75,7 @@ uint32_t page_map_gc_update(KEYT *lba, uint32_t idx){
 	pm_body *p=(pm_body*)page_ftl.algo_body;
 
 	/*when the gc phase, It should get a page from the reserved block*/
-	res=page_ftl.bm->get_page_num(page_ftl.bm,p->reserve);
+	res=page_ftl.bm->get_page_num(page_ftl.bm,p->reserve[_current_stream]);
 	uint32_t old_ppa, new_ppa;
 	for(uint32_t i=0; i<idx; i++){
 		KEYT t_lba=lba[i];

@@ -20,7 +20,8 @@ long tmp_gc_write=0;
 long tmp_user_write=0;
 
 extern uint32_t test_key;
-align_buffer a_buffer;
+align_buffer a_buffer[MAX_STREAM];
+// align_buffer *a_buffer = &_a_buffer[1];
 typedef std::multimap<uint32_t, algo_req*>::iterator rb_r_iter;
 
 extern MeasureTime mt;
@@ -134,10 +135,10 @@ uint32_t page_read(request *const req){
 
 //	printf("issue %u %u\n", req->seq, req->key);
 
-	for(uint32_t i=0; i<a_buffer.idx; i++){
-		if(req->key==a_buffer.key[i]){
+	for(uint32_t i=0; i<a_buffer->idx; i++){
+		if(req->key==a_buffer->key[i]){
 			//		printf("buffered read!\n");
-			memcpy(req->value->value, a_buffer.value[i]->value, LPAGESIZE);
+			memcpy(req->value->value, a_buffer->value[i]->value, LPAGESIZE);
 			req->end_req(req);		
 			return 1;
 		}
@@ -179,38 +180,40 @@ uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 	//TODO get stream number of the request here
 	int streams = (int)req->stream_num;
 	//printf("streamnum: %d\n", streams);
-	for(uint32_t i=0; i<a_buffer.idx; i++){
-		if(a_buffer.key[i]==req->key){
+	// _current_stream=(int)req->stream_num;
+	_current_stream=1;
+	for(uint32_t i=0; i<a_buffer[_current_stream].idx; i++){
+		if(a_buffer[_current_stream].key[i]==req->key){
 			overlapped_idx=i;
 			overlap=true;
 			break;
 		}
 	}
 
-	uint32_t target_idx=overlap?overlapped_idx:a_buffer.idx;
-	if (overlap) inf_free_valueset(a_buffer.value[target_idx], FS_MALLOC_W);
+	uint32_t target_idx=overlap?overlapped_idx:a_buffer[_current_stream].idx;
+	if (overlap) inf_free_valueset(a_buffer[_current_stream].value[target_idx], FS_MALLOC_W);
 	
 	if(req){
-		a_buffer.value[target_idx]=req->value;
-		a_buffer.key[target_idx]=req->key;
+		a_buffer[_current_stream].value[target_idx]=req->value;
+		a_buffer[_current_stream].key[target_idx]=req->key;
 		req->value=NULL;
 	}
 	else{
-		a_buffer.value[target_idx]=value;
-		a_buffer.key[target_idx]=key;
+		a_buffer[_current_stream].value[target_idx]=value;
+		a_buffer[_current_stream].key[target_idx]=key;
 	}
 
-	if(!overlap){ a_buffer.idx++;}
+	if(!overlap){ a_buffer[_current_stream].idx++;}
 
-	if(a_buffer.idx==L2PGAP){
-		ppa_t ppa=page_map_assign(a_buffer.key, a_buffer.idx);
+	if(a_buffer[_current_stream].idx==L2PGAP){
+		ppa_t ppa=page_map_assign(a_buffer[_current_stream].key, a_buffer[_current_stream].idx);
 		value_set *value=inf_get_valueset(NULL, FS_MALLOC_W, PAGESIZE);
 		for(uint32_t i=0; i<L2PGAP; i++){
-			memcpy(&value->value[i*LPAGESIZE], a_buffer.value[i]->value, LPAGESIZE);
-			inf_free_valueset(a_buffer.value[i], FS_MALLOC_W);
+			memcpy(&value->value[i*LPAGESIZE], a_buffer[_current_stream].value[i]->value, LPAGESIZE);
+			inf_free_valueset(a_buffer[_current_stream].value[i], FS_MALLOC_W);
 		}
 		send_user_req(req, DATAW, ppa, value);
-		a_buffer.idx=0;
+		a_buffer[_current_stream].idx=0;
 		return 0;
 	}
 	return 1;
@@ -231,15 +234,15 @@ uint32_t page_write(request *const req){
 }
 
 uint32_t page_remove(request *const req){
-	for(uint8_t i=0; i<a_buffer.idx; i++){
-		if(a_buffer.key[i]==req->key){
-			inf_free_valueset(a_buffer.value[i], FS_MALLOC_W);
+	for(uint8_t i=0; i<a_buffer[_current_stream].idx; i++){
+		if(a_buffer[_current_stream].key[i]==req->key){
+			inf_free_valueset(a_buffer[_current_stream].value[i], FS_MALLOC_W);
 			if(i==1){
-				a_buffer.value[0]=a_buffer.value[1];
-				a_buffer.key[0]=a_buffer.key[1];
+				a_buffer[_current_stream].value[0]=a_buffer[_current_stream].value[1];
+				a_buffer[_current_stream].key[0]=a_buffer[_current_stream].key[1];
 			}
 
-			a_buffer.idx--;
+			a_buffer[_current_stream].idx--;
 			goto end;
 		}
 	}

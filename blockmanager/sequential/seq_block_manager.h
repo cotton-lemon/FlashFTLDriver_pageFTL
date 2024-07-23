@@ -13,6 +13,7 @@ typedef struct block_set{
 	uint32_t used_page_num;
 	uint8_t type;
 	__block *blocks[BPS];
+	uint8_t stream_num;
 	uint32_t written_time;
 	void *hptr;
 }block_set;

@@ -31,3 +31,5 @@ uint32_t page_write(request *const);
 uint32_t page_remove(request *const);
 uint32_t page_flush(request *const);
 void *page_end_req(algo_req*);
+
+extern int _current_stream;

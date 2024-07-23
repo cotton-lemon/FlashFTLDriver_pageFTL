@@ -6,6 +6,7 @@
 
 extern algorithm page_ftl;
 extern long tmp_gc_write;
+int _current_stream=1;
 
 void invalidate_ppa(uint32_t t_ppa){
 	/*when the ppa is invalidated this function must be called*/
@@ -113,16 +114,17 @@ next:
 
 	bm->trim_segment(bm,target,page_ftl.li); //erase a block
 
-	bm->free_segment(bm, p->active);
+	bm->free_segment(bm, p->active[_current_stream]);
 
-	p->active=p->reserve;//make reserved to active block
-	p->reserve=bm->change_reserve(bm,p->reserve); //get new reserve block from block_manager
+	p->active[_current_stream]=p->reserve[_current_stream];//make reserved to active block
+	p->reserve[_current_stream]=bm->change_reserve(bm,p->reserve[_current_stream]); //get new reserve block from block_manager
 }
 
 void do_gc(){
 	// printf("g ");
 	/*this function return a block which have the most number of invalidated page*/
 	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
+	// printf("gc %d\n",target->seg_idx);
 	uint32_t page;
 	uint32_t bidx, pidx;
 	blockmanager *bm=page_ftl.bm;
@@ -205,10 +207,10 @@ void do_gc(){
 
 	bm->trim_segment(bm,target,page_ftl.li); //erase a block
 
-	bm->free_segment(bm, p->active);
+	bm->free_segment(bm, p->active[_current_stream]);
 
-	p->active=p->reserve;//make reserved to active block
-	p->reserve=bm->change_reserve(bm,p->reserve); //get new reserve block from block_manager
+	p->active[_current_stream]=p->reserve[_current_stream];//make reserved to active block
+	p->reserve[_current_stream]=bm->change_reserve(bm,p->reserve[_current_stream]); //get new reserve block from block_manager
 
 	list_free(temp_list);
 	list_free(hot_list);
@@ -314,7 +316,7 @@ ppa_t get_ppa(KEYT *lbas, uint32_t max_idx){
 	uint32_t res;
 	pm_body *p=(pm_body*)page_ftl.algo_body;
 	/*you can check if the gc is needed or not, using this condition*/
-	if(page_ftl.bm->check_full(page_ftl.bm, p->active,MASTER_PAGE) && page_ftl.bm->is_gc_needed(page_ftl.bm)){
+	if(page_ftl.bm->check_full(page_ftl.bm, p->active[_current_stream],MASTER_PAGE) && page_ftl.bm->is_gc_needed(page_ftl.bm)){
 //		new_do_gc();//call gc
 		do_gc();//call gc 
 		// do_gc2();
@@ -322,11 +324,11 @@ ppa_t get_ppa(KEYT *lbas, uint32_t max_idx){
 
 retry:
 	/*get a page by bm->get_page_num, when the active block doesn't have block, return UINT_MAX*/
-	res=page_ftl.bm->get_page_num(page_ftl.bm,p->active);
+	res=page_ftl.bm->get_page_num(page_ftl.bm,p->active[_current_stream]);
 
 	if(res==UINT32_MAX){
-		page_ftl.bm->free_segment(page_ftl.bm, p->active);
-		p->active=page_ftl.bm->get_segment(page_ftl.bm,false); //get a new block
+		page_ftl.bm->free_segment(page_ftl.bm, p->active[_current_stream]);
+		p->active[_current_stream]=page_ftl.bm->get_segment(page_ftl.bm,false); //get a new block
 		// printf("r ");
 		goto retry;
 	}

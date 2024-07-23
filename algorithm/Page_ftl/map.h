@@ -4,14 +4,15 @@
 #define BENCH_JY 0 
 //0 is zip08, 1 is zip11, 2 is random
 
+#define MAX_STREAM 5
 typedef struct page_map_body{
 	uint32_t *mapping;
 	bool isfull;
 	uint32_t assign_page;
 
 	/*segment is a kind of Physical Block*/
-	__segment *reserve; //for gc
-	__segment *active; //for gc
+	__segment *reserve[MAX_STREAM];//for gc
+	__segment *active[MAX_STREAM]; //for gc
 }pm_body;
 
 

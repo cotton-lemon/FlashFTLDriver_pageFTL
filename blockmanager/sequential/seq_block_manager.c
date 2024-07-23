@@ -74,7 +74,7 @@ int seq_get_cnt(void *a){
 	//todosg
 
 	//Greedy
-	// return aa->total_invalid_number;
+	return aa->total_invalid_number;
 	// printf("age: %d, invalid %d, valid %d, cost: %d \n",reqq_size-(aa->written_time),aa->total_invalid_number,aa->total_valid_number,(reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number));
 	// if (aa->written_time==0){
 	// 	printf("not finished block invalid %d valid %d\n",aa->total_invalid_number,aa->total_valid_number);
@@ -85,7 +85,7 @@ int seq_get_cnt(void *a){
 	// 	return aa->total_invalid_number/(513-aa->total_invalid_number);
 	// }
 	//Cost Benefit(CF)
-	return (reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number);
+	// return (reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number);
 }
 
 uint32_t seq_create (struct blockmanager* bm, lower_info *li){
@@ -157,7 +157,13 @@ __segment* seq_get_segment (struct blockmanager* bm, bool isreserve){
 	}
 
 	if(free_block_set->total_invalid_number || free_block_set->total_valid_number){
-		EPRINT("how can it be!\n", true);
+		if (free_block_set->total_invalid_number==512){
+			printf("pass\n");
+		}
+		else{
+			EPRINT("how can it be!\n", true);
+		}
+		
 	}
 
 	if(!free_block_set){
@@ -220,7 +226,7 @@ void seq_reinsert_segment(struct blockmanager *bm, uint32_t seg_idx){
 
 bool seq_is_gc_needed (struct blockmanager* bm){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
-	if(p->free_logical_segment_q->size<=5) return true;
+	if(p->free_logical_segment_q->size<=12) return true;
 	return false;
 }
 
