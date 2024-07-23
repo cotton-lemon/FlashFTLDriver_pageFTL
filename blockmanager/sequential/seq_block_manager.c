@@ -4,7 +4,7 @@
 
 static uint64_t total_validate_piece_ppa;
 static uint64_t total_invalidate_piece_ppa;
-
+extern int _current_stream;//just for debug
 struct blockmanager seq_bm={
 	.create=seq_create,
 	.destroy=seq_destroy,
@@ -119,7 +119,7 @@ uint32_t seq_create (struct blockmanager* bm, lower_info *li){
 	mh_init(&p->max_heap, _NOS, seq_mh_swap_hptr, seq_mh_assign_hptr, seq_get_cnt);
 	q_init(&p->free_logical_segment_q, _NOS);
 	q_init(&p->invalid_block_q, _NOS);
-	
+	printf("NOS %d\n",_NOS);
 	for(uint32_t i=0; i<_NOS; i++){
 		q_enqueue((void*)&p->logical_segment[i], p->free_logical_segment_q);
 		p->free_block++;
@@ -150,19 +150,22 @@ __segment* seq_get_segment (struct blockmanager* bm, bool isreserve){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
 	
 	block_set *free_block_set=(block_set*)q_dequeue(p->free_logical_segment_q);
-	
+	if (free_block_set->blocks[0]->block_num==3985){
+		printf("3985 stream: %d reqsize %d\n",_current_stream,reqq_size);
+	}
 	if(!free_block_set){
 		EPRINT("dev full??", false);
 		return NULL;
 	}
 
 	if(free_block_set->total_invalid_number || free_block_set->total_valid_number){
-		if (free_block_set->total_invalid_number==512){
-			printf("pass\n");
-		}
-		else{
-			EPRINT("how can it be!\n", true);
-		}
+		// if (free_block_set->total_invalid_number==512){
+		// 	printf("pass\n");
+		// }
+		// else{
+		// 	EPRINT("how can it be!\n", true);
+		// }
+		EPRINT("how can it be!\n", false);
 		
 	}
 
@@ -172,7 +175,7 @@ __segment* seq_get_segment (struct blockmanager* bm, bool isreserve){
 	}
 
 
-	if(isreserve){
+	if(isreserve){//여기가 문제네 일단 active면 heap에 다 넣어서 문제가 생김. 사용중에도 gc의 대상이 될 수 있음 todosg
 
 	}
 	else{
@@ -244,14 +247,25 @@ void temp_print(void *a){
 				target->total_invalid_number);
 	}
 }
-
+int ccount=0;//for debugonly
+extern int nowgc;
 __gsegment* seq_get_gc_target (struct blockmanager* bm){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
 	__gsegment* res=(__gsegment*)malloc(sizeof(__gsegment));
 	res->invalidate_number=0;
-
+		++ccount;
+	// if (ccount==803){
+	// 	printf("ccount just before\n");
+	// 	mh_print(p->max_heap, temp_print);
+		
+	// }
+	if (ccount==804){
+		printf("ccount now\n");
+		// mh_print(p->max_heap, temp_print);
+		
+	}
 	block_set *target=NULL;
-	if(p->invalid_block_q->size){
+	if(p->invalid_block_q->size){//이 que가 작동 안할 수도?todosg
 		target=(block_set*)q_dequeue(p->invalid_block_q);
 	}
 	else{
@@ -260,7 +274,13 @@ __gsegment* seq_get_gc_target (struct blockmanager* bm){
 	}
 
 	if(!target) return NULL;
-
+	nowgc=target->blocks[0]->block_num;
+	if (target->blocks[0]->block_num==3985){
+		printf("gc 3985 req %d\n",reqq_size);
+		printf("ccount %d\n",ccount);
+		// mh_print(p->max_heap, temp_print);
+		
+	}
 	memcpy(res->blocks, target->blocks, sizeof(__block*)*BPS);
 	res->now=res->max=0;
 	res->seg_idx=res->blocks[0]->block_num/BPS;
@@ -569,11 +589,43 @@ void seq_free_segment(struct blockmanager *, __segment *seg){
 	free(seg);
 }
 
+
+//using this function as insert to queue todosg
+// uint32_t seq_remain_free_page(struct blockmanager *bm, __segment *active){
+// 	sbm_pri *p=(sbm_pri*)bm->private_data;
+// 	return p->free_block*_PPS+(active?(_PPS-active->used_page_num):0);
+// }
 uint32_t seq_remain_free_page(struct blockmanager *bm, __segment *active){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
-	return p->free_block*_PPS+(active?(_PPS-active->used_page_num):0);
-}
+	
+	block_set *free_block_set=(block_set*)q_dequeue(p->free_logical_segment_q);
+	if (free_block_set->blocks[0]->block_num==3985){
+		printf("3985 stream: %d reqsize %d\n",_current_stream,reqq_size);
+	}
+	if(!free_block_set){
+		EPRINT("dev full??", false);
+		return NULL;
+	}
+	for (int q=0; q<PPB;++q){
+		active->blocks
+	}
+	
+	if(free_block_set->total_invalid_number || free_block_set->total_valid_number){
+		// if (free_block_set->total_invalid_number==512){
+		// 	printf("pass\n");
+		// }
+		// else{
+		// 	EPRINT("how can it be!\n", true);
+		// }
+		EPRINT("how can it be!\n", false);
+		
+	}
+//todotodotodo
+//segemnt받아서 blockset으로 바꿔서? queue에 넣기
+//
+	mh_insert_append(p->max_heap, (void*)free_block_set);
 
+}
 uint32_t seq_get_invalidate_number(struct blockmanager *bm, uint32_t seg_idx){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
 	return p->logical_segment[seg_idx].total_invalid_number;

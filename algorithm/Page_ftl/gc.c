@@ -6,8 +6,10 @@
 
 extern algorithm page_ftl;
 extern long tmp_gc_write;
-int _current_stream=1;
 
+extern long reqq_size;//for debug
+int _current_stream=1;
+int seg_state[4096+5]={0,};//for debug
 void invalidate_ppa(uint32_t t_ppa){
 	/*when the ppa is invalidated this function must be called*/
 	page_ftl.bm->unpopulate_bit(page_ftl.bm, t_ppa);
@@ -118,12 +120,15 @@ next:
 
 	p->active[_current_stream]=p->reserve[_current_stream];//make reserved to active block
 	p->reserve[_current_stream]=bm->change_reserve(bm,p->reserve[_current_stream]); //get new reserve block from block_manager
+
 }
 
+int nowgc=0;
 void do_gc(){
 	// printf("g ");
 	/*this function return a block which have the most number of invalidated page*/
 	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
+
 	// printf("gc %d\n",target->seg_idx);
 	uint32_t page;
 	uint32_t bidx, pidx;
@@ -139,7 +144,18 @@ void do_gc(){
 	const uint32_t tot_page_num=512;
 	uint32_t page_num=0;
 	//uint32_t test=0;
-	
+	for (int q=0;q<MAX_STREAM;++q){
+		if (p->active[q]->blocks[0]->block_num==nowgc){
+			printf("gc using block num: %d active stream %d req %d\n",nowgc,q,reqq_size);
+		}
+		if (p->reserve[q]->blocks[0]->block_num==nowgc){
+			printf("gc using block num: %d reserve stream %d req %d\n",nowgc,q,reqq_size);
+			// if (reqq_size==2637111){
+			// 	printf("error point\n");
+			// 	break;
+			// }
+		}
+	}
 	//static int cnt=0;
 	//printf("gc: %d\n", cnt++);
 	/*by using this for loop, you can traversal all page in block*/
@@ -207,13 +223,22 @@ void do_gc(){
 
 	bm->trim_segment(bm,target,page_ftl.li); //erase a block
 
-	bm->free_segment(bm, p->active[_current_stream]);
+	bm->free_segment(bm, p->active[_current_stream]);//여기가 문제인듯
 
 	p->active[_current_stream]=p->reserve[_current_stream];//make reserved to active block
 	p->reserve[_current_stream]=bm->change_reserve(bm,p->reserve[_current_stream]); //get new reserve block from block_manager
 
 	list_free(temp_list);
 	list_free(hot_list);
+	for (int q=0;q<MAX_STREAM;++q){
+		if (p->active[q]->blocks[0]->block_num==3985){
+			printf("gc end 3985 stream %d req %d\n",q,reqq_size);
+			if (reqq_size==2637111){
+				printf("error point\n");
+				break;
+			}
+		}
+	}
 }
 
 // void do_gc2(){

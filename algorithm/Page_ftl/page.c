@@ -135,10 +135,10 @@ uint32_t page_read(request *const req){
 
 //	printf("issue %u %u\n", req->seq, req->key);
 
-	for(uint32_t i=0; i<a_buffer->idx; i++){
-		if(req->key==a_buffer->key[i]){
+	for(uint32_t i=0; i<a_buffer[_current_stream].idx; i++){
+		if(req->key==a_buffer[_current_stream].key[i]){
 			//		printf("buffered read!\n");
-			memcpy(req->value->value, a_buffer->value[i]->value, LPAGESIZE);
+			memcpy(req->value->value, a_buffer[_current_stream].value[i]->value, LPAGESIZE);
 			req->end_req(req);		
 			return 1;
 		}
@@ -167,6 +167,12 @@ uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 	++size;
 	++tmp_user_write;
 	++reqq_size;
+	if (reqq_size==2637110){
+		printf("just before\n");
+	}
+	if (reqq_size==2637111){
+		printf("error point start\n");
+	}
 	//if (size%262144==0) printf("\rwrite size: %dGB", size/262144);
 	//if (size%8388608==0) printf("\n");
 
@@ -180,8 +186,8 @@ uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 	//TODO get stream number of the request here
 	int streams = (int)req->stream_num;
 	//printf("streamnum: %d\n", streams);
-	// _current_stream=(int)req->stream_num;
-	_current_stream=1;
+	_current_stream=(int)req->stream_num;
+	// _current_stream=1;
 	for(uint32_t i=0; i<a_buffer[_current_stream].idx; i++){
 		if(a_buffer[_current_stream].key[i]==req->key){
 			overlapped_idx=i;
