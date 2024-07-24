@@ -150,9 +150,9 @@ __segment* seq_get_segment (struct blockmanager* bm, bool isreserve){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
 	
 	block_set *free_block_set=(block_set*)q_dequeue(p->free_logical_segment_q);
-	if (free_block_set->blocks[0]->block_num==3985){
-		printf("3985 stream: %d reqsize %d\n",_current_stream,reqq_size);
-	}
+	// if (free_block_set->blocks[0]->block_num==3985){
+	// 	printf("3985 stream: %d reqsize %d\n",_current_stream,reqq_size);
+	// }
 	if(!free_block_set){
 		EPRINT("dev full??", false);
 		return NULL;
@@ -179,7 +179,7 @@ __segment* seq_get_segment (struct blockmanager* bm, bool isreserve){
 
 	}
 	else{
-		mh_insert_append(p->max_heap, (void*)free_block_set);
+		// mh_insert_append(p->max_heap, (void*)free_block_set);
 	}
 
 	memcpy(res->blocks, free_block_set->blocks, sizeof(__block*)*BPS);
@@ -214,7 +214,7 @@ __segment* seq_change_reserve(struct blockmanager* bm,__segment *reserve){
 	uint32_t segment_idx=segment_start_block_number/BPS;
 	block_set *bs=&p->logical_segment[segment_idx];
 
-	mh_insert_append(p->max_heap, (void*)bs);
+	// mh_insert_append(p->max_heap, (void*)bs);//todosg
 
 	return seq_get_segment(bm,true);
 }
@@ -229,7 +229,7 @@ void seq_reinsert_segment(struct blockmanager *bm, uint32_t seg_idx){
 
 bool seq_is_gc_needed (struct blockmanager* bm){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
-	if(p->free_logical_segment_q->size<=12) return true;
+	if(p->free_logical_segment_q->size<=4) return true;
 	return false;
 }
 
@@ -275,12 +275,12 @@ __gsegment* seq_get_gc_target (struct blockmanager* bm){
 
 	if(!target) return NULL;
 	nowgc=target->blocks[0]->block_num;
-	if (target->blocks[0]->block_num==3985){
-		printf("gc 3985 req %d\n",reqq_size);
-		printf("ccount %d\n",ccount);
-		// mh_print(p->max_heap, temp_print);
+	// if (target->blocks[0]->block_num==3985){
+	// 	printf("gc 3985 req %d\n",reqq_size);
+	// 	printf("ccount %d\n",ccount);
+	// 	// mh_print(p->max_heap, temp_print);
 		
-	}
+	// }
 	memcpy(res->blocks, target->blocks, sizeof(__block*)*BPS);
 	res->now=res->max=0;
 	res->seg_idx=res->blocks[0]->block_num/BPS;
@@ -585,47 +585,56 @@ __block *seq_pick_block(struct blockmanager *bm, uint32_t page_num){
 	return &p->seq_block[page_num/_PPB];
 }
 
-void seq_free_segment(struct blockmanager *, __segment *seg){
+void seq_free_segment(struct blockmanager *bm, __segment *seg){
+
+	//insert segment to heap
+	sbm_pri *p=(sbm_pri*)bm->private_data;
+	uint32_t segment_start_block_number=seg->blocks[0]->block_num;
+	uint32_t segment_idx=segment_start_block_number/BPS;
+	block_set *bs=&p->logical_segment[segment_idx];
+
+	mh_insert_append(p->max_heap, (void*)bs);
+
 	free(seg);
 }
 
 
 //using this function as insert to queue todosg
-// uint32_t seq_remain_free_page(struct blockmanager *bm, __segment *active){
-// 	sbm_pri *p=(sbm_pri*)bm->private_data;
-// 	return p->free_block*_PPS+(active?(_PPS-active->used_page_num):0);
-// }
 uint32_t seq_remain_free_page(struct blockmanager *bm, __segment *active){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
-	
-	block_set *free_block_set=(block_set*)q_dequeue(p->free_logical_segment_q);
-	if (free_block_set->blocks[0]->block_num==3985){
-		printf("3985 stream: %d reqsize %d\n",_current_stream,reqq_size);
-	}
-	if(!free_block_set){
-		EPRINT("dev full??", false);
-		return NULL;
-	}
-	for (int q=0; q<PPB;++q){
-		active->blocks
-	}
-	
-	if(free_block_set->total_invalid_number || free_block_set->total_valid_number){
-		// if (free_block_set->total_invalid_number==512){
-		// 	printf("pass\n");
-		// }
-		// else{
-		// 	EPRINT("how can it be!\n", true);
-		// }
-		EPRINT("how can it be!\n", false);
-		
-	}
-//todotodotodo
-//segemnt받아서 blockset으로 바꿔서? queue에 넣기
-//
-	mh_insert_append(p->max_heap, (void*)free_block_set);
-
+	return p->free_block*_PPS+(active?(_PPS-active->used_page_num):0);
 }
+// uint32_t seq_remain_free_page(struct blockmanager *bm, __segment *active){
+// // 	sbm_pri *p=(sbm_pri*)bm->private_data;
+	
+// // 	block_set *free_block_set=(block_set*)q_dequeue(p->free_logical_segment_q);
+// // 	if (free_block_set->blocks[0]->block_num==3985){
+// // 		printf("3985 stream: %d reqsize %d\n",_current_stream,reqq_size);
+// // 	}
+// // 	if(!free_block_set){
+// // 		EPRINT("dev full??", false);
+// // 		return NULL;
+// // 	}
+// // 	for (int q=0; q<PPB;++q){
+// // 		active->blocks;
+// // 	}
+	
+// // 	if(free_block_set->total_invalid_number || free_block_set->total_valid_number){
+// // 		// if (free_block_set->total_invalid_number==512){
+// // 		// 	printf("pass\n");
+// // 		// }
+// // 		// else{
+// // 		// 	EPRINT("how can it be!\n", true);
+// // 		// }
+// // 		EPRINT("how can it be!\n", false);
+		
+// // 	}
+// // //todotodotodo
+// // //segemnt받아서 blockset으로 바꿔서? queue에 넣기
+// // //
+// // 	mh_insert_append(p->max_heap, (void*)free_block_set);
+
+// }
 uint32_t seq_get_invalidate_number(struct blockmanager *bm, uint32_t seg_idx){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
 	return p->logical_segment[seg_idx].total_invalid_number;

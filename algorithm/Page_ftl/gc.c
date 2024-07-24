@@ -54,74 +54,74 @@ gc_value* send_req(uint32_t ppa, uint8_t type, value_set *value){
 	return res;
 }
 
-void new_do_gc(){
-	/*this function return a block which have the most number of invalidated page*/
-	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
-	uint32_t page;
-	uint32_t bidx, pidx;
-	blockmanager *bm=page_ftl.bm;
-	pm_body *p=(pm_body*)page_ftl.algo_body;
-	//list *temp_list=list_init();
-	gc_value **gv_array=(gc_value**)malloc(sizeof(gc_value*)*_PPS);
-	align_gc_buffer g_buffer;
-	gc_value *gv;
-	uint32_t gv_idx=0;
+// void new_do_gc(){
+// 	/*this function return a block which have the most number of invalidated page*/
+// 	__gsegment *target=page_ftl.bm->get_gc_target(page_ftl.bm);
+// 	uint32_t page;
+// 	uint32_t bidx, pidx;
+// 	blockmanager *bm=page_ftl.bm;
+// 	pm_body *p=(pm_body*)page_ftl.algo_body;
+// 	//list *temp_list=list_init();
+// 	gc_value **gv_array=(gc_value**)malloc(sizeof(gc_value*)*_PPS);
+// 	align_gc_buffer g_buffer;
+// 	gc_value *gv;
+// 	uint32_t gv_idx=0;
 
-	/*by using this for loop, you can traversal all page in block*/
-	for_each_page_in_seg(target,page,bidx,pidx){
-		//this function check the page is valid or not
-		gv=send_req(page,GCDR,NULL);
-		gv_array[gv_idx++]=gv;
-	}
+// 	/*by using this for loop, you can traversal all page in block*/
+// 	for_each_page_in_seg(target,page,bidx,pidx){
+// 		//this function check the page is valid or not
+// 		gv=send_req(page,GCDR,NULL);
+// 		gv_array[gv_idx++]=gv;
+// 	}
 
-	g_buffer.idx=0;
-	KEYT *lbas;
-	gv_idx=0;
-	uint32_t done_cnt=0;
-	while(done_cnt!=_PPS){
-		gv=gv_array[gv_idx];
-		if(!gv->isdone){
-			goto next;
-		}
-		lbas=(KEYT*)bm->get_oob(bm, gv->ppa);
-		for(uint32_t i=0; i<L2PGAP; i++){
-			if(page_map_pick(lbas[i])!=gv->ppa*L2PGAP+i) continue;
-			memcpy(&g_buffer.value[g_buffer.idx*LPAGESIZE],&gv->value->value[i*LPAGESIZE],LPAGESIZE);
-			g_buffer.key[g_buffer.idx]=lbas[i];
+// 	g_buffer.idx=0;
+// 	KEYT *lbas;
+// 	gv_idx=0;
+// 	uint32_t done_cnt=0;
+// 	while(done_cnt!=_PPS){
+// 		gv=gv_array[gv_idx];
+// 		if(!gv->isdone){
+// 			goto next;
+// 		}
+// 		lbas=(KEYT*)bm->get_oob(bm, gv->ppa);
+// 		for(uint32_t i=0; i<L2PGAP; i++){
+// 			if(page_map_pick(lbas[i])!=gv->ppa*L2PGAP+i) continue;
+// 			memcpy(&g_buffer.value[g_buffer.idx*LPAGESIZE],&gv->value->value[i*LPAGESIZE],LPAGESIZE);
+// 			g_buffer.key[g_buffer.idx]=lbas[i];
 
-			g_buffer.idx++;
+// 			g_buffer.idx++;
 
-			if(g_buffer.idx==L2PGAP){
-				uint32_t res=page_map_gc_update(g_buffer.key, L2PGAP);
-				validate_ppa(res, g_buffer.key, g_buffer.idx);
-				send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
-				g_buffer.idx=0;
-			}
-		}
+// 			if(g_buffer.idx==L2PGAP){
+// 				uint32_t res=page_map_gc_update(g_buffer.key, L2PGAP);
+// 				validate_ppa(res, g_buffer.key, g_buffer.idx);
+// 				send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
+// 				g_buffer.idx=0;
+// 			}
+// 		}
 
-		done_cnt++;
+// 		done_cnt++;
 
-		inf_free_valueset(gv->value, FS_MALLOC_R);
-		free(gv);
-next:
-		gv_idx=(gv_idx+1)%_PPS;
-	}	
+// 		inf_free_valueset(gv->value, FS_MALLOC_R);
+// 		free(gv);
+// next:
+// 		gv_idx=(gv_idx+1)%_PPS;
+// 	}	
 
-	if(g_buffer.idx!=0){
-		uint32_t res=page_map_gc_update(g_buffer.key, g_buffer.idx);
-		validate_ppa(res, g_buffer.key, g_buffer.idx);
-		send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
-		g_buffer.idx=0;	
-	}
+// 	if(g_buffer.idx!=0){
+// 		uint32_t res=page_map_gc_update(g_buffer.key, g_buffer.idx);
+// 		validate_ppa(res, g_buffer.key, g_buffer.idx);
+// 		send_req(res, GCDW, inf_get_valueset(g_buffer.value, FS_MALLOC_W, PAGESIZE));
+// 		g_buffer.idx=0;	
+// 	}
 
-	bm->trim_segment(bm,target,page_ftl.li); //erase a block
+// 	bm->trim_segment(bm,target,page_ftl.li); //erase a block
 
-	bm->free_segment(bm, p->active[_current_stream]);
+// 	bm->free_segment(bm, p->active[_current_stream]);
 
-	p->active[_current_stream]=p->reserve[_current_stream];//make reserved to active block
-	p->reserve[_current_stream]=bm->change_reserve(bm,p->reserve[_current_stream]); //get new reserve block from block_manager
+// 	p->active[_current_stream]=p->reserve[_current_stream];//make reserved to active block
+// 	p->reserve[_current_stream]=bm->change_reserve(bm,p->reserve[_current_stream]); //get new reserve block from block_manager
 
-}
+// }
 
 int nowgc=0;
 void do_gc(){
@@ -230,15 +230,15 @@ void do_gc(){
 
 	list_free(temp_list);
 	list_free(hot_list);
-	for (int q=0;q<MAX_STREAM;++q){
-		if (p->active[q]->blocks[0]->block_num==3985){
-			printf("gc end 3985 stream %d req %d\n",q,reqq_size);
-			if (reqq_size==2637111){
-				printf("error point\n");
-				break;
-			}
-		}
-	}
+	// for (int q=0;q<MAX_STREAM;++q){
+	// 	if (p->active[q]->blocks[0]->block_num==3985){
+	// 		printf("gc end 3985 stream %d req %d\n",q,reqq_size);
+	// 		if (reqq_size==2637111){
+	// 			printf("error point\n");
+	// 			break;
+	// 		}
+	// 	}
+	// }
 }
 
 // void do_gc2(){

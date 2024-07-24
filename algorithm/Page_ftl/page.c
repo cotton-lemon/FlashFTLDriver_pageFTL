@@ -134,15 +134,17 @@ uint32_t page_read(request *const req){
 	}
 
 //	printf("issue %u %u\n", req->seq, req->key);
-
-	for(uint32_t i=0; i<a_buffer[_current_stream].idx; i++){
-		if(req->key==a_buffer[_current_stream].key[i]){
-			//		printf("buffered read!\n");
-			memcpy(req->value->value, a_buffer[_current_stream].value[i]->value, LPAGESIZE);
-			req->end_req(req);		
-			return 1;
+	for (int stream=0; stream<MAX_STREAM;++stream){
+		for(uint32_t i=0; i<a_buffer[stream].idx; i++){
+			if(req->key==a_buffer[stream].key[i]){
+				//		printf("buffered read!\n");
+				memcpy(req->value->value, a_buffer[stream].value[i]->value, LPAGESIZE);
+				req->end_req(req);
+				return 1;
+			}
 		}
 	}
+
 
 	//printf("read key :%u\n",req->key);
 
