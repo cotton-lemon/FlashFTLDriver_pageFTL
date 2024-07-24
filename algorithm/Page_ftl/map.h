@@ -11,7 +11,7 @@ typedef struct page_map_body{
 	uint32_t assign_page;
 
 	/*segment is a kind of Physical Block*/
-	__segment *reserve[MAX_STREAM];//for gc
+	__segment *reserve;//for gc
 	__segment *active[MAX_STREAM]; //for gc
 }pm_body;
 

@@ -146,10 +146,10 @@ void do_gc(){
 	//uint32_t test=0;
 	for (int q=0;q<MAX_STREAM;++q){
 		if (p->active[q]->blocks[0]->block_num==nowgc){
-			printf("gc using block num: %d active stream %d req %d\n",nowgc,q,reqq_size);
+			printf("error! gc using block num: %d active stream %d req %d\n",nowgc,q,reqq_size);
 		}
-		if (p->reserve[q]->blocks[0]->block_num==nowgc){
-			printf("gc using block num: %d reserve stream %d req %d\n",nowgc,q,reqq_size);
+		if (p->reserve->blocks[0]->block_num==nowgc){
+			printf("error! gc using block num: %d reserve stream %d req %d\n",nowgc,q,reqq_size);
 			// if (reqq_size==2637111){
 			// 	printf("error point\n");
 			// 	break;
@@ -225,8 +225,8 @@ void do_gc(){
 
 	bm->free_segment(bm, p->active[_current_stream]);//여기가 문제인듯
 
-	p->active[_current_stream]=p->reserve[_current_stream];//make reserved to active block
-	p->reserve[_current_stream]=bm->change_reserve(bm,p->reserve[_current_stream]); //get new reserve block from block_manager
+	p->active[_current_stream]=p->reserve;//make reserved to active block
+	p->reserve=bm->change_reserve(bm,p->reserve); //get new reserve block from block_manager
 
 	list_free(temp_list);
 	list_free(hot_list);
