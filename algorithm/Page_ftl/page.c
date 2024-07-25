@@ -161,8 +161,10 @@ uint32_t page_read(request *const req){
 	return 1;
 }
 
-long reqq_size=0;//memo
+long reqq_size=0;
 static uint32_t size=0;
+extern int stream_gc[5]; //for debug
+extern int same_gc[2]; //for debug
 uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 	bool overlap=false;
 	uint32_t overlapped_idx=UINT32_MAX;
@@ -181,15 +183,26 @@ uint32_t align_buffering(request *const req, KEYT key, value_set *value){
 	if (reqq_size%(GIGAUNIT*1024/4*1024)==0) {
 		printf("reqq_size %d\n",reqq_size);
 		printf("[PROGRESS %dGB] tmp WAF = %.3f\n", reqq_size/(1024*1024/4),(double)(tmp_user_write+tmp_gc_write)/(double)tmp_user_write);
+		for (int tmpint=0;tmpint<MAX_STREAM;++tmpint){
+			printf("%d ",stream_gc[tmpint]);
+		}
+		printf("same gc %d % d\n",same_gc[0],same_gc[1]);
+		printf("\n");
 		tmp_user_write=0;
 		tmp_gc_write=0;
 	}
 
 	//TODO get stream number of the request here
 	int streams = (int)req->stream_num;
+	
 	//printf("streamnum: %d\n", streams);
 	_current_stream=(int)req->stream_num;
-	// _current_stream=1;
+	// if (_current_stream<3){
+	// 	// printf("%d",streams);
+	// printf("%d.",_current_stream);
+	// }
+	
+	// _current_stream=1;//config disable multistream
 	for(uint32_t i=0; i<a_buffer[_current_stream].idx; i++){
 		if(a_buffer[_current_stream].key[i]==req->key){
 			overlapped_idx=i;

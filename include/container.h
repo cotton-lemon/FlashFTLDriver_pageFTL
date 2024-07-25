@@ -207,6 +207,7 @@ typedef struct mastersegment{
 	uint16_t max;
 	uint32_t used_page_num;
 	uint8_t invalid_blocks;
+	uint8_t stream_num;
 	void *private_data;
 }__segment;
 
@@ -218,6 +219,7 @@ typedef struct ghostsegment{ //for gc
 	uint16_t max;
 	uint32_t invalidate_number;
 	uint32_t validate_number;
+	uint8_t stream_num;
 }__gsegment;
 
 struct blockmanager{

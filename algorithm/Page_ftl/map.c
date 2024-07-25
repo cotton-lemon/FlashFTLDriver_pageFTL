@@ -89,12 +89,44 @@ uint32_t page_map_gc_update(KEYT *lba, uint32_t idx){
 
 		}
 	}
+	return res;
+}
 
-/*
-	for(uint32_t i=idx; i<L2PGAP; i++){
-		invalidate_ppa(res*L2PGAP+idx);
+uint32_t page_map_gc_update_stream(KEYT *lba, uint32_t idx,uint8_t stream){
+	uint32_t res;
+	pm_body *p=(pm_body*)page_ftl.algo_body;
+	int flag=0;
+
+	retry:
+		if (flag>0){
+			printf(" gc update stream flag= %d\n",flag);
+		}
+		/*get a page by bm->get_page_num, when the active block doesn't have block, return UINT_MAX*/
+		res=page_ftl.bm->get_page_num(page_ftl.bm,p->active[stream]);
+
+		if(res==UINT32_MAX){
+			page_ftl.bm->free_segment(page_ftl.bm, p->active[stream]);
+			p->active[stream]=page_ftl.bm->get_segment(page_ftl.bm,false); //get a new block
+			p->active[stream]->stream_num= stream;//not needed . just in case.
+			// printf("r ");
+			flag++;
+			goto retry;
+		}
+
+
+	uint32_t old_ppa, new_ppa;
+	for(uint32_t i=0; i<idx; i++){
+		KEYT t_lba=lba[i];
+		if(p->mapping[t_lba]!=UINT_MAX){
+			/*when mapping was updated, the old one is checked as a inavlid*/
+			invalidate_ppa(p->mapping[t_lba]);
+		}
+		/*mapping update*/
+		p->mapping[t_lba]=res*L2PGAP+i;
+		if(t_lba==test_key){
+
+		}
 	}
-*/
 	return res;
 }
 
@@ -102,5 +134,4 @@ void page_map_free(){
 	pm_body *p=(pm_body*)page_ftl.algo_body;
 	free(p->mapping);
 }
-
 

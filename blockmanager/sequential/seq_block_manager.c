@@ -85,7 +85,10 @@ int seq_get_cnt(void *a){
 	// 	return aa->total_invalid_number/(513-aa->total_invalid_number);
 	// }
 	//Cost Benefit(CF)
-	// return (reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number);
+	// printf("age %d invalid %d benefit %d\n",reqq_size-(aa->written_time),aa->total_invalid_number,(reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number));
+	// printf("%d\n",(reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number));
+	// printf("%d\n",reqq_size-(aa->written_time))*aa->total_invalid_number/(513-aa->total_invalid_number);
+	// return ((reqq_size-(aa->written_time))*(aa->total_invalid_number))*3/((512*3+1)-3*(aa->total_invalid_number));
 }
 
 uint32_t seq_create (struct blockmanager* bm, lower_info *li){
@@ -229,7 +232,7 @@ void seq_reinsert_segment(struct blockmanager *bm, uint32_t seg_idx){
 
 bool seq_is_gc_needed (struct blockmanager* bm){
 	sbm_pri *p=(sbm_pri*)bm->private_data;
-	if(p->free_logical_segment_q->size<=4) return true;
+	if(p->free_logical_segment_q->size<=3) return true;
 	return false;
 }
 
@@ -265,11 +268,12 @@ __gsegment* seq_get_gc_target (struct blockmanager* bm){
 		
 	}
 	block_set *target=NULL;
-	if(p->invalid_block_q->size){//이 que가 작동 안할 수도?todosg
+	if(p->invalid_block_q->size){
 		target=(block_set*)q_dequeue(p->invalid_block_q);
 	}
 	else{
 		mh_construct(p->max_heap);
+		// mh_construct(p->max_heap);
 		target=(block_set*)mh_get_max(p->max_heap);
 	}
 
@@ -287,6 +291,7 @@ __gsegment* seq_get_gc_target (struct blockmanager* bm){
 
 	res->invalidate_number=target->total_invalid_number;
 	res->validate_number=target->total_valid_number;
+	res->stream_num=target->stream_num;
 
 	if(target->total_invalid_number==target->total_valid_number){
 		res->all_invalid=true;
@@ -351,7 +356,7 @@ void seq_trim_segment (struct blockmanager* bm, __gsegment* gs, struct lower_inf
 	block_set *bs=&p->logical_segment[segment_idx];
 	bs->total_invalid_number=0;
 	bs->total_valid_number=0;
-	// bs->written_time=0;
+	bs->written_time=0;
 	/*
 	if(bs==&p->logical_segment[1228928/16384]){
 		bs->blocks[(1228928%16384)%256]
@@ -592,6 +597,7 @@ void seq_free_segment(struct blockmanager *bm, __segment *seg){
 	uint32_t segment_start_block_number=seg->blocks[0]->block_num;
 	uint32_t segment_idx=segment_start_block_number/BPS;
 	block_set *bs=&p->logical_segment[segment_idx];
+	bs->stream_num=seg->stream_num;
 
 	mh_insert_append(p->max_heap, (void*)bs);
 

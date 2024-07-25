@@ -17,20 +17,29 @@ void mh_free(mh* h){
 	free(h->body);
 	free(h);
 }
+void mh_update_all_cnt(mh *h){
+	for(uint32_t i=0; i<h->size; i++){
+		if (h->body[i].data){
+			h->body[i].cnt=h->get_cnt(h->body[i].data);
+			// n->cnt=h->get_cnt(n->data);
+		}
+	}
+}
+
 
 static hn* maxchild(mh *h, hn *n){
 	hn *res=NULL;
 	int idx=(n-h->body);
 	if(!n->data) return res;
-	n->cnt=h->get_cnt(n->data);
+	// n->cnt=h->get_cnt(n->data);
 	
 	hn *lc=MHL_CHIPTR(h,idx);
-	if(lc->data)
-		lc->cnt=h->get_cnt(lc->data);
+	// if(lc->data)
+		// lc->cnt=h->get_cnt(lc->data);
 
 	hn *rc=MHR_CHIPTR(h,idx);
-	if(rc->data)
-		rc->cnt=h->get_cnt(rc->data);
+	// if(rc->data)
+		// rc->cnt=h->get_cnt(rc->data);
 
 	if(lc->data && !rc->data) res=lc;
 	else if(!lc->data && rc->data) res=rc;
@@ -136,6 +145,7 @@ void mh_insert_append(mh *h, void *data){
 }
 
 void mh_construct(mh *h){
+	mh_update_all_cnt(h);
 	int all_size=h->size;
 	int depth=1;
 	while(all_size/=2){depth++;}
@@ -154,3 +164,4 @@ void mh_print(mh *h, void(*print_func)(void*blk)){
 		print_func(h->body[i].data);
 	}
 }
+

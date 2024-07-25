@@ -21,4 +21,6 @@ uint32_t page_map_assign(KEYT *lba, uint32_t max_idx);
 uint32_t page_map_pick(uint32_t lba);
 uint32_t page_map_trim(uint32_t lba);
 uint32_t page_map_gc_update(KEYT* lba, uint32_t idx);
+// uint32_t page_map_new_gc_update(KEYT* lba, uint32_t idx);
+uint32_t page_map_gc_update_stream(KEYT *lba, uint32_t idx,uint8_t stream);
 void page_map_free();
